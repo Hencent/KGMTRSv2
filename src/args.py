@@ -7,7 +7,6 @@
 
 class Args(object):
     def __init__(self):
-        super(Args, self).__init__()
 
         # system environment
         self.seed = 19981125
@@ -37,10 +36,11 @@ class Args(object):
 
         # test setting
         """
-        0: 单类型数据中的指定类型作为 test data
+        0: 单类型数据中的指定类型作为 test data_supplement_neg_test_data
         1: 多类型数据中的指定店名部分 test data
         """
         self.test_data_mode = 0
+        self.n_neg_grid = 60
         self.test_target_type_list = ["火锅", "四川火锅", "重庆火锅"]  # 指定类型
         self.test_file_target_shop_name = []  # 多类型数据中，哪些店名测试数据
 

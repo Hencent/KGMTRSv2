@@ -6,6 +6,7 @@
 # @Desc  : None
 
 import os
+import dgl
 import pandas as pd
 
 from src.args import args
@@ -37,3 +38,9 @@ def load_category_relation():
     data_dir = os.path.join(args.category_dir, "big_small_category_relation.csv")
     relation_data = pd.read_csv(data_dir)
     return relation_data
+
+
+def load_graph(city_id):
+    data_dir = os.path.join(args.preprocessed_data_dir, args.city_list[city_id])
+    city_graph, _ = dgl.load_graphs(os.path.join(data_dir, "city_graph"))
+    return city_graph[0]
