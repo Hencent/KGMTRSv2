@@ -6,6 +6,7 @@
 # @Desc  : None
 
 import os
+import csv
 import dgl
 import pandas as pd
 
@@ -44,3 +45,17 @@ def load_graph(city_id):
     data_dir = os.path.join(args.preprocessed_data_dir, args.city_list[city_id])
     city_graph, _ = dgl.load_graphs(os.path.join(data_dir, "city_graph"))
     return city_graph[0]
+
+
+def load_city_base_info(city_id):
+    data_dir = os.path.join(args.preprocessed_data_dir, args.city_list[city_id])
+    with open(os.path.join(data_dir, "base_info.csv"), 'r') as f:
+        reader = csv.reader(f, delimiter=',')
+        n_longitude, n_latitude, n_grid = [int(row[1]) for row in reader]
+    return n_longitude, n_latitude, n_grid
+
+
+def get_n_city_grid(city_id):
+    _, _, n_grid = load_city_base_info(city_id)
+    return n_grid
+

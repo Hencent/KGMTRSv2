@@ -31,6 +31,7 @@ class Args(object):
         self.target_city_id = self.city_list.index(self.target_city)
         self.intentionally_ignored_cate_list = ["火锅", "四川火锅", "重庆火锅"]
         self.lr = 0.001
+        self.weight_decay = 0.0001
         self.n_epoch = 1000
         self.use_category_ontology_diagram = True
 
