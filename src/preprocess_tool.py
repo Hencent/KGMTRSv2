@@ -15,9 +15,6 @@ if __name__ == "__main__":
     data_extract_and_generate_test_data()
 
     print("|--    build city graph.")
-    # build_city_graph()
-    #
-    # print("|--    generate train data.")
-    # generate_train_data()
+    build_city_graph()
 
     print("|--    preprocess data done.")

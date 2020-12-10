@@ -151,9 +151,8 @@ class _CityInfoExtractHelper(object):
             # TODO 等苗子佳学姐的数据
             pass
 
-        print(test_pos_grids)
         test_data = self._supplement_test_data(test_pos_grids)
-        print(test_data)
+
         return test_data
 
     def _save_preprocessed_data(self):
@@ -196,8 +195,6 @@ def data_extract_and_generate_test_data():
 
     # preprocess every city
     for city_id, city_name in enumerate(args.city_list):
-        if city_id == 0:
-            continue
         print("| |--  loading and preprocessing {} data.".format(city_name))
         _CityInfoExtractHelper(city_id, big_category_dict, small_category_dict)
 
