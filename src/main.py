@@ -63,7 +63,8 @@ if __name__ == '__main__':
         time_kg_transR_start = time()
         for city_id, city_name in enumerate(args.city_list):
             for kg_iter in range(len(data.train_batch_ncf_index[city_id])):
-                relation, head, pos_tail, neg_tail = data.get_train_keg_batch_data(city_id, kg_iter)
+                relation, head, pos_tail, neg_tail = \
+                    data.get_train_keg_batch_data(city_id, data.train_batch_ncf_index[city_id][kg_iter])
                 optimizer.zero_grad()
                 kg_iter_loss = model("cal_KG_transR", city_id, head, pos_tail, neg_tail, relation)
                 kg_iter_loss.backward()
@@ -78,3 +79,5 @@ if __name__ == '__main__':
 
         logging.info('|--            Epoch {:04d} | KG TransR Done | Total Time {:.1f}s'.
                      format(epoch, time() - time_kg_transR_start))
+
+        # train ncf

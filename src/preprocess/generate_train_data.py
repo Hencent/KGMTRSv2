@@ -7,7 +7,7 @@
 
 import os
 import dgl
-import torch
+import random
 
 from src.args import args
 
@@ -15,7 +15,7 @@ from src.args import args
 class GenerateTrainDataHelper(object):
     def __init__(self, city_id, city_graph, graph_entity_relation_to_ID, DEVICE):
         self.city_id = city_id
-        # # load graph
+        # load graph
         # self.city_graph = load_graph(city_id)
         self.city_graph = city_graph
 
@@ -31,6 +31,12 @@ class GenerateTrainDataHelper(object):
         for edge_type in self.city_graph.etypes:
             head, pos_tail, eid = self.city_graph.edges(etype=edge_type, form='all')
             neg_tail = list(neg_sampler(self.city_graph, {edge_type: eid}).values())[0][1]
+
+            # 打乱顺序，防止每次都是相邻格子
+            index_for_shuffle = list(range(len(head)))
+            random.shuffle(index_for_shuffle)
+            head, pos_tail, neg_tail = head[index_for_shuffle], pos_tail[index_for_shuffle], neg_tail[index_for_shuffle]
+
             head, pos_tail, neg_tail = head.to(DEVICE), pos_tail.to(DEVICE), neg_tail.to(DEVICE)
             batch_data_for_kg_transR.extend([[graph_entity_relation_to_ID[edge_type],
                                               head[i:i + args.kg_transR_batch_size],

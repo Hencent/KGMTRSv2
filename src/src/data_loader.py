@@ -53,12 +53,12 @@ class DataLoader(object):
 
         for city_data in self.train_kge:
             single_city_keg_batch_index = list(range(0, len(city_data)))
-            random.shuffle(single_city_keg_batch_index)
+            # random.shuffle(single_city_keg_batch_index)
             kge_batch_index.append(single_city_keg_batch_index)
 
         for city_data in self.train_ncf:
             single_city_ncf_batch_index = list(range(0, len(city_data)))
-            random.shuffle(single_city_ncf_batch_index)
+            # random.shuffle(single_city_ncf_batch_index)
             ncf_batch_index.append(single_city_ncf_batch_index)
 
         return kge_batch_index, ncf_batch_index
