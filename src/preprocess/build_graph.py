@@ -65,7 +65,7 @@ class _SingleCityGraphBuilder(object):
 
         if args.use_category_ontology_diagram:
             graph_data.update({
-                ('small-category', 'small-category_big-big-category', 'big-category'): (
+                ('small-category', 'small-category_big-category', 'big-category'): (
                     self.category_relation["small_cate"], self.category_relation["big_cate"]),
                 ('big-category', 'big-category_small-category', 'small-category'): (
                     self.category_relation["big_cate"], self.category_relation["small_cate"]),

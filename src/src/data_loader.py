@@ -10,7 +10,7 @@ import torch
 import random
 import pandas as pd
 from src.tool.shared_tool import load_graph, load_category, get_n_city_grid
-from src.preprocess.generate_train_data import GenerateTrainDataHelper
+from src.src.generate_train_data import GenerateTrainDataHelper
 
 from src.args import args
 
@@ -21,16 +21,16 @@ class DataLoader(object):
         # base info
         graph_entity_relation_list = ["small-category_grid", "grid_small-category", "grid_grid"]
         if args.use_category_ontology_diagram:
-            graph_entity_relation_list.extend(["small-category_big-big-category", "big-category_small-category"])
+            graph_entity_relation_list.extend(["small-category_big-category", "big-category_small-category"])
         self.graph_entity_relation_to_ID = dict({v: torch.tensor(k, device=DEVICE)
                                                  for k, v in enumerate(graph_entity_relation_list)})
 
         self.n_city_grid = [get_n_city_grid(city_id) for city_id in range(len(args.city_list))]
         self.n_kg_relation = len(graph_entity_relation_list)
-        _, _, self.n_big_category, self.n_small_category = load_category()
+        self.big_category_dict, self.small_category_dict, self.n_big_category, self.n_small_category = load_category()
 
         # load data
-        self.test_data = self._load_test_data()
+        self.test_grids, self.target_type_ids = self._generate_test_data()
         self.city_graphs = []
         self.train_kge = []
         self.train_ncf = []
@@ -63,11 +63,15 @@ class DataLoader(object):
 
         return kge_batch_index, ncf_batch_index
 
-    def _load_test_data(self):
+    def _generate_test_data(self):
         data_dir = os.path.join(args.preprocessed_data_dir, args.city_list[args.target_city_id])
-        test_data = pd.read_csv(os.path.join(data_dir, 'test_data.csv'), header=None)
-        test_data = torch.tensor(test_data.values, device=self.DEVICE)
-        return test_data
+        test_grids = pd.read_csv(os.path.join(data_dir, 'test_data.csv'), header=None)
+        test_grids = torch.tensor(test_grids.values, device=self.DEVICE)
+
+        target_type_ids = torch.tensor([self.small_category_dict[v]
+                                        for v in args.test_target_type_list], device=self.DEVICE)
+
+        return test_grids, target_type_ids
 
     def shuffle_train_data_index(self):
         for city_id in range(len(args.city_list)):
@@ -81,4 +85,4 @@ class DataLoader(object):
         return self.train_ncf[city_id][index]
 
     def get_test_data(self):
-        return self.test_data
+        return self.test_grids, self.target_type_ids

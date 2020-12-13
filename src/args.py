@@ -44,14 +44,15 @@ class Args(object):
         self.n_neg_grid = 60
         self.test_target_type_list = ["火锅", "四川火锅", "重庆火锅"]  # 指定类型
         self.test_file_target_shop_name = []  # 多类型数据中，哪些店名测试数据
+        self.K = 10
 
         # Graph and propagation layers setting
         self.embedding_size = 64
         self.city_bias_size = 4
         self.relation_dim = 64
-        self.conv_dim_list = [64, 32, 16, 8]
-        self.ncf_dim_list = [32, 16, 1]
+        self.conv_dim_list = [64, 16, 8]
         self.mess_dropout = [0.1, 0.1, 0.1]
+        self.ncf_dim_list = [32, 16, 1]
         self.kg_transR_batch_size = 64
         self.NCF_batch_size = 64
 

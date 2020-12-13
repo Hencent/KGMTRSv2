@@ -7,6 +7,7 @@
 
 import torch
 from time import time
+import matplotlib.pyplot as plt
 from src.src.data_loader import DataLoader
 from src.src.system_init import system_init
 from src.src.log_tool import logging
@@ -45,14 +46,13 @@ if __name__ == '__main__':
     if CUDA_AVAILABLE:
         model = model.to(DEVICE)
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
-    print(model.parameters())
 
     # train model
     logging.info("|--           begin training model.")
     kg_loss_list = []
     ncf_loss_list = []
-    ndcg_list = []
     hr_list = []
+    ndcg_list = []
 
     for epoch in range(args.n_epoch):
         data.shuffle_train_data_index()
@@ -60,8 +60,12 @@ if __name__ == '__main__':
         model.train()
 
         # train kg transR
+        kg_epoch_loss_total = 0
+        kg_iter_sum = 0
         time_kg_transR_start = time()
+
         for city_id, city_name in enumerate(args.city_list):
+            kg_iter_sum += len(data.train_batch_ncf_index[city_id])
             for kg_iter in range(len(data.train_batch_ncf_index[city_id])):
                 relation, head, pos_tail, neg_tail = \
                     data.get_train_keg_batch_data(city_id, data.train_batch_ncf_index[city_id][kg_iter])
@@ -70,6 +74,8 @@ if __name__ == '__main__':
                 kg_iter_loss.backward()
                 optimizer.step()
 
+                kg_epoch_loss_total += kg_iter_loss.cpu().item()
+
                 if kg_iter % args.print_iter_frequency_kg == 0:
                     logging.info(
                         '|--            Epoch {:04d} | KG TransR Training {}: | Iter {:05d} / {:05d} '
@@ -77,7 +83,83 @@ if __name__ == '__main__':
                                                     len(data.train_batch_ncf_index[city_id]),
                                                     kg_iter_loss.cpu().item()))
 
-        logging.info('|--            Epoch {:04d} | KG TransR Done | Total Time {:.1f}s'.
-                     format(epoch, time() - time_kg_transR_start))
+        kg_epoch_mean = kg_epoch_loss_total / kg_iter_sum
+        kg_loss_list.append(kg_epoch_mean)
+
+        logging.info('|--            Epoch {:04d} | KG TransR Done | Total Time {:.1f}s | Mean Loss {:.4f}'.
+                     format(epoch, time() - time_kg_transR_start, kg_epoch_mean))
+
+        # calculate attention for propagation
+        for city_id, _ in enumerate(args.city_list):
+            with torch.no_grad():
+                attention_score = model("cal_KG_attention", city_id, data.city_graphs[city_id])
+            for k, v in attention_score.items():
+                data.city_graphs[city_id].edges[k[1]].data['att'] = v
 
         # train ncf
+        ncf_epoch_loss_total = 0
+        ncf_iter_sum = 0
+        time_ncf_transR_start = time()
+
+        for city_id, city_name in enumerate(args.city_list):
+            ncf_iter_sum += len(data.train_batch_ncf_index[city_id])
+            for ncf_iter in range(len(data.train_batch_ncf_index[city_id])):
+                cate_list, pos_grid_list, neg_grid_list = \
+                    data.get_train_ncf_batch_data(city_id, data.train_batch_ncf_index[city_id][ncf_iter])
+                optimizer.zero_grad()
+                ncf_iter_loss = model("cal_NCF_loss", city_id, data.city_graphs[city_id],
+                                      cate_list, pos_grid_list, neg_grid_list)
+                ncf_iter_loss.backward()
+                optimizer.step()
+
+                ncf_epoch_loss_total += ncf_iter_loss.cpu().item()
+
+                if ncf_iter % args.print_iter_frequency_kg == 0:
+                    logging.info(
+                        '|--            Epoch {:04d} | KG NCF Training {}: | Iter {:05d} / {:05d} '
+                        '| Iter Loss {:.4f}'.format(epoch, city_name, ncf_iter,
+                                                    len(data.train_batch_ncf_index[city_id]),
+                                                    ncf_iter_loss.cpu().item()))
+
+        ncf_epoch_mean = ncf_epoch_loss_total / ncf_iter_sum
+        ncf_loss_list.append(ncf_epoch_mean)
+
+        logging.info('|--            Epoch {:04d} | NCF Done | Total Time {:.1f}s | Mean Loss {:.4f}'.
+                     format(epoch, time() - time_ncf_transR_start, ncf_epoch_mean))
+
+        # test
+        model.eval()
+        with torch.no_grad():
+            test_grids, target_cate_ids = data.get_test_data()
+            hr, ndcg = model("test", data.city_graphs[args.target_city_id], target_cate_ids, test_grids)
+            hr_list.append(hr)
+            ndcg_list.append(ndcg)
+            logging.info('|--            Epoch {:04d} | Test : | HR@{} {:.4f} | NDCG@{} {:.4f}'.
+                         format(epoch, args.K, hr, args.K, ndcg))
+
+    # train model done.
+    logging.info("|--           training model done.")
+
+    plt.figure(1)
+    plt.subplot(1, 2, 1)
+    plt.xlabel("epoch")
+    plt.ylabel("kg loss every epoch")
+    plt.plot(range(len(kg_loss_list)), kg_loss_list)
+    plt.subplot(1, 2, 2)
+    plt.xlabel("epoch")
+    plt.ylabel("ncf loss every epoch")
+    plt.plot(range(len(ncf_loss_list)), ncf_loss_list)
+    plt.savefig('loss.png')
+    plt.show()
+
+    plt.figure(2)
+    plt.subplot(1, 2, 1)
+    plt.xlabel("epoch")
+    plt.ylabel("HR@K")
+    plt.plot(range(len(hr_list)), hr_list)
+    plt.subplot(1, 2, 2)
+    plt.xlabel("epoch")
+    plt.ylabel("NDCG@K")
+    plt.plot(range(len(ndcg_list)), ndcg_list)
+    plt.savefig('metrics.png')
+    plt.show()

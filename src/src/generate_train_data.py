@@ -23,7 +23,7 @@ class GenerateTrainDataHelper(object):
         self.kge_train = self._generate_train_data_for_KGE(graph_entity_relation_to_ID, DEVICE)
 
         # generate train data for NCF
-        self.ncf_train = self._generate_train_data_for_NCF(DEVICE)
+        self.ncf_train = self._generate_train_data_for_NCF()
 
     def _generate_train_data_for_KGE(self, graph_entity_relation_to_ID, DEVICE):
         neg_sampler = dgl.dataloading.negative_sampler.Uniform(1)
@@ -32,7 +32,7 @@ class GenerateTrainDataHelper(object):
             head, pos_tail, eid = self.city_graph.edges(etype=edge_type, form='all')
             neg_tail = list(neg_sampler(self.city_graph, {edge_type: eid}).values())[0][1]
 
-            # 打乱顺序，防止每次都是相邻格子
+            # 打乱顺序，防止同类型边每次都是相邻格子
             index_for_shuffle = list(range(len(head)))
             random.shuffle(index_for_shuffle)
             head, pos_tail, neg_tail = head[index_for_shuffle], pos_tail[index_for_shuffle], neg_tail[index_for_shuffle]
@@ -46,7 +46,7 @@ class GenerateTrainDataHelper(object):
 
         return batch_data_for_kg_transR
 
-    def _generate_train_data_for_NCF(self, DEVICE):
+    def _generate_train_data_for_NCF(self):
         cate_list = []
         pos_grid_list = []
         neg_grid_list = []
@@ -56,18 +56,29 @@ class GenerateTrainDataHelper(object):
         category, pos_grid, eid = self.city_graph.edges(etype="small-category_grid", form='all')
         neg_grid = list(neg_sampler(self.city_graph, {"small-category_grid": eid}).values())[0][1]
 
+        category = category.tolist()
+        pos_grid = pos_grid.tolist()
+        neg_grid = neg_grid.tolist()
+
         cate_list.extend([[cat] for cat in category])
         pos_grid_list.extend(pos_grid)
         neg_grid_list.extend(neg_grid)
+
+        # # shuffle index to avoid same category to be together
+        # index_for_shuffle = list(range(len(cate_list)))
+        # random.shuffle(index_for_shuffle)
+        # cate_list = cate_list[index_for_shuffle]
+        # pos_grid_list = pos_grid_list[index_for_shuffle]
+        # neg_grid_list = neg_grid_list[index_for_shuffle]
 
         # multi-category
         data_dir = os.path.join(args.preprocessed_data_dir, args.city_list[self.city_id])
         # TODO 等待苗子佳学姐的数据
         pass
 
-        batch_data_for_kg_transR = [[cate_list[i: i + args.NCF_batch_size],
-                                     pos_grid_list[i: i + args.NCF_batch_size],
-                                     neg_grid_list[i: i + args.NCF_batch_size]]
-                                    for i in range(0, len(cate_list), args.NCF_batch_size)]
+        batch_data_for_NCF = [[cate_list[i: i + args.NCF_batch_size],
+                               pos_grid_list[i: i + args.NCF_batch_size],
+                               neg_grid_list[i: i + args.NCF_batch_size]]
+                              for i in range(0, len(cate_list), args.NCF_batch_size)]
 
-        return batch_data_for_kg_transR
+        return batch_data_for_NCF
