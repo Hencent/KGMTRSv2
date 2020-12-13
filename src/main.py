@@ -59,35 +59,35 @@ if __name__ == '__main__':
         epoch_start_time = time()
         model.train()
 
-        # # train kg transR
-        # kg_epoch_loss_total = 0
-        # kg_iter_sum = 0
-        # time_kg_transR_start = time()
-        #
-        # for city_id, city_name in enumerate(args.city_list):
-        #     kg_iter_sum += len(data.train_batch_ncf_index[city_id])
-        #     for kg_iter in range(len(data.train_batch_ncf_index[city_id])):
-        #         relation, head, pos_tail, neg_tail = \
-        #             data.get_train_keg_batch_data(city_id, data.train_batch_ncf_index[city_id][kg_iter])
-        #         optimizer.zero_grad()
-        #         kg_iter_loss = model("cal_KG_transR", city_id, head, pos_tail, neg_tail, relation)
-        #         kg_iter_loss.backward()
-        #         optimizer.step()
-        #
-        #         kg_epoch_loss_total += kg_iter_loss.cpu().item()
-        #
-        #         if kg_iter % args.print_iter_frequency_kg == 0:
-        #             logging.info(
-        #                 '|--            Epoch {:04d} | KG TransR Training {}: | Iter {:05d} / {:05d} '
-        #                 '| Iter Loss {:.4f}'.format(epoch, city_name, kg_iter,
-        #                                             len(data.train_batch_ncf_index[city_id]),
-        #                                             kg_iter_loss.cpu().item()))
-        #
-        # kg_epoch_mean = kg_epoch_loss_total / kg_iter_sum
-        # kg_loss_list.append(kg_epoch_mean)
-        #
-        # logging.info('|--            Epoch {:04d} | KG TransR Done | Total Time {:.1f}s | Mean Loss {:.4f}'.
-        #              format(epoch, time() - time_kg_transR_start, kg_epoch_mean))
+        # train kg transR
+        kg_epoch_loss_total = 0
+        kg_iter_sum = 0
+        time_kg_transR_start = time()
+
+        for city_id, city_name in enumerate(args.city_list):
+            kg_iter_sum += len(data.train_batch_ncf_index[city_id])
+            for kg_iter in range(len(data.train_batch_ncf_index[city_id])):
+                relation, head, pos_tail, neg_tail = \
+                    data.get_train_keg_batch_data(city_id, data.train_batch_ncf_index[city_id][kg_iter])
+                optimizer.zero_grad()
+                kg_iter_loss = model("cal_KG_transR", city_id, head, pos_tail, neg_tail, relation)
+                kg_iter_loss.backward()
+                optimizer.step()
+
+                kg_epoch_loss_total += kg_iter_loss.cpu().item()
+
+                if kg_iter % args.print_iter_frequency_kg == 0:
+                    logging.info(
+                        '|--            Epoch {:04d} | KG TransR Training {}: | Iter {:05d} / {:05d} '
+                        '| Iter Loss {:.4f}'.format(epoch, city_name, kg_iter,
+                                                    len(data.train_batch_ncf_index[city_id]),
+                                                    kg_iter_loss.cpu().item()))
+
+        kg_epoch_mean = kg_epoch_loss_total / kg_iter_sum
+        kg_loss_list.append(kg_epoch_mean)
+
+        logging.info('|--            Epoch {:04d} | KG TransR Done | Total Time {:.1f}s | Mean Loss {:.4f}'.
+                     format(epoch, time() - time_kg_transR_start, kg_epoch_mean))
 
         # calculate attention for propagation
         for city_id, _ in enumerate(args.city_list):
