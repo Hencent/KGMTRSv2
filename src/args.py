@@ -30,6 +30,7 @@ class Args(object):
         self.target_city = "Hangzhou"
         self.target_city_id = self.city_list.index(self.target_city)
         self.intentionally_ignored_cate_list = ["火锅", "四川火锅", "重庆火锅"]
+        self.small_cate_for_fitting_list = ["川菜馆", "川菜", "川菜家常菜", "串串香", "烤串"]
         self.lr = 0.001
         self.weight_decay = 0.0001
         self.n_epoch = 1000

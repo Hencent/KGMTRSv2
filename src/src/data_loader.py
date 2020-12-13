@@ -53,12 +53,12 @@ class DataLoader(object):
 
         for city_data in self.train_kge:
             single_city_keg_batch_index = list(range(0, len(city_data)))
-            # random.shuffle(single_city_keg_batch_index)
+            random.shuffle(single_city_keg_batch_index)
             kge_batch_index.append(single_city_keg_batch_index)
 
         for city_data in self.train_ncf:
             single_city_ncf_batch_index = list(range(0, len(city_data)))
-            # random.shuffle(single_city_ncf_batch_index)
+            random.shuffle(single_city_ncf_batch_index)
             ncf_batch_index.append(single_city_ncf_batch_index)
 
         return kge_batch_index, ncf_batch_index
@@ -69,14 +69,14 @@ class DataLoader(object):
         test_grids = torch.tensor(test_grids.values, device=self.DEVICE)
 
         target_type_ids = torch.tensor([self.small_category_dict[v]
-                                        for v in args.test_target_type_list], device=self.DEVICE)
+                                        for v in args.small_cate_for_fitting_list], device=self.DEVICE)
 
         return test_grids, target_type_ids
 
-    def shuffle_train_data_index(self):
-        for city_id in range(len(args.city_list)):
-            random.shuffle(self.train_batch_kge_index[city_id])
-            random.shuffle(self.train_batch_ncf_index[city_id])
+    # def shuffle_train_data_index(self):
+    #     for city_id in range(len(args.city_list)):
+    #         random.shuffle(self.train_batch_kge_index[city_id])
+    #         random.shuffle(self.train_batch_ncf_index[city_id])
 
     def get_train_keg_batch_data(self, city_id, index):
         return self.train_kge[city_id][index]

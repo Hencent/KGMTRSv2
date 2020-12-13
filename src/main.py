@@ -55,7 +55,7 @@ if __name__ == '__main__':
     ndcg_list = []
 
     for epoch in range(args.n_epoch):
-        data.shuffle_train_data_index()
+        # data.shuffle_train_data_index()
         epoch_start_time = time()
         model.train()
 
