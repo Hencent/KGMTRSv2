@@ -114,6 +114,9 @@ class _CityInfoExtractHelper(object):
         return small_category_grid_relation
 
     def _supplement_test_data(self, pos_grids):
+        """
+        generate negative grids for each positive grid.
+        """
         test_data = []
         all_grids_set = set(list(range(0, self.n_grid)))
         pos_grids_set = set(pos_grids)
@@ -191,7 +194,7 @@ class _CityInfoExtractHelper(object):
 
 def data_extract_and_generate_test_data():
     # load category
-    big_category_dict, small_category_dict, n_big_category, n_small_category = load_category()
+    big_category_dict, small_category_dict, _, _ = load_category()
 
     # preprocess every city
     for city_id, city_name in enumerate(args.city_list):

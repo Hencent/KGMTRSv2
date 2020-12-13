@@ -228,18 +228,6 @@ class KGMTRS(nn.Module):
             if args.use_category_ontology_diagram:
                 g.nodes['big-category'].data['v'] = self.knowledge_graph.big_category_embedding
 
-            # for cats in cate_list:
-            #     val = g.nodes['small-category'].data['v']
-            #     a = val[cats]
-            #     res = g.nodes['small-category'].data['v'][cats]
-            #     b = res[0]
-
-            # cate_list_embedding = [[[] for _ in cats] for cats in cate_list]
-            # for idx, cats in enumerate(cate_list):
-            #     tmp_v = g.nodes['small-category'].data['v'][cats]
-            #     for cat_id in range(len(cats)):
-            #         cate_list_embedding[idx][cat_id].append(tmp_v[cat_id])
-
             cate_list_embedding = [[g.nodes['small-category'].data['v'][cats]] for cats in cate_list]
             pos_grid_embedding = [g.nodes['grid'].data['v'][pos_grid_list]]
             neg_grid_embedding = [g.nodes['grid'].data['v'][neg_grid_list]]
@@ -334,7 +322,7 @@ class KGMTRS(nn.Module):
         for test_idx in range(len(test_grids)):
             ncf_input = torch.cat((merged_cate_embedding[test_idx], grid_embedding[test_idx], city_bias), 1)
             score = self.NCF(ncf_input).squeeze()
-            _, sorted_indices = torch.sort(score)
+            _, sorted_indices = torch.sort(score, descending=True)
 
             hr_list.append(hit_ratio_at_K(0, sorted_indices[:args.K], args.K))
             ndcg_list.append(ndcg_at_K(0, sorted_indices[:args.K], args.K))

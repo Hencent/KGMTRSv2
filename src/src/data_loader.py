@@ -68,6 +68,7 @@ class DataLoader(object):
         test_grids = pd.read_csv(os.path.join(data_dir, 'test_data.csv'), header=None)
         test_grids = torch.tensor(test_grids.values, device=self.DEVICE)
 
+        # 用于拟合的类似品牌 ID
         target_type_ids = torch.tensor([self.small_category_dict[v]
                                         for v in args.small_cate_for_fitting_list], device=self.DEVICE)
 
