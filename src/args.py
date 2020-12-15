@@ -32,9 +32,9 @@ class Args(object):
         self.intentionally_ignored_cate_list = ["火锅", "四川火锅", "重庆火锅"]
         self.small_cate_for_fitting_list = ["川菜家常菜", "串串香"]
         self.lr = 0.001
-        self.weight_decay = 0.0001
-        self.n_epoch = 1000
-        self.use_category_ontology_diagram = True
+        self.weight_decay = 0.01
+        self.n_epoch = 50
+        self.use_category_ontology_diagram = False
 
         # test setting
         """
@@ -44,16 +44,18 @@ class Args(object):
         self.test_data_mode = 0
         self.n_neg_grid = 60
         self.test_target_type_list = ["火锅", "四川火锅", "重庆火锅"]  # 指定类型
-        self.test_file_target_shop_name = []  # 多类型数据中，哪些店名测试数据
-        self.K = 10
+        self.test_file_target_shop_name = ["西西弗书店"]  # 多类型数据中，哪些店名测试数据
+        # self.K = 15
+        self.K_list = [6, 10, 15]
 
         # Graph and propagation layers setting
         self.embedding_size = 64
         self.city_bias_size = 4
         self.relation_dim = 64
         self.conv_dim_list = [64, 16, 8]
-        self.mess_dropout = [0.1, 0.1, 0.1]
+        self.dropout_for_conv = [0.1, 0.1, 0.1]
         self.ncf_dim_list = [32, 16, 1]
+        self.dropout_for_ncf = [0.5, 0.5, 0.5]
         self.kg_transR_batch_size = 64
         self.NCF_batch_size = 64
 

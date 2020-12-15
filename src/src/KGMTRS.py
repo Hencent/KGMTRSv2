@@ -157,6 +157,7 @@ class NCF(nn.Module):
         dim_list = [NCF_dim] + args.ncf_dim_list
         for i in range(1, len(dim_list)):
             self.MLP.add_module("Linear_{}".format(i), nn.Linear(dim_list[i-1], dim_list[i]))
+            self.MLP.add_module("Dropout_{}".format(i), nn.Dropout(args.dropout_for_ncf[i-1]))
             self.MLP.add_module("LeakyRelu_{}".format(i), nn.LeakyReLU())
 
     def forward(self, in_data):
@@ -177,7 +178,7 @@ class KGMTRS(nn.Module):
         conv_dim_list = [args.embedding_size] + args.conv_dim_list
         for idx, _ in enumerate(args.conv_dim_list):
             self.aggregation_layers.append(Aggregator(conv_dim_list[idx], conv_dim_list[idx + 1],
-                                                      args.mess_dropout[idx]))
+                                                      args.dropout_for_conv[idx]))
 
         # NCF
         self.NCF = NCF()
@@ -317,16 +318,27 @@ class KGMTRS(nn.Module):
         merged_cate_embedding = self._merge_cate_for_test(cate_embedding, grid_embedding)
         city_bias = self.knowledge_graph.city_bias[args.target_city_id].repeat(len(test_grids[0]), 1)
 
-        hr_list = []
-        ndcg_list = []
+        # hr_list = []
+        # ndcg_list = []
+        hr_list_list = [[] for _ in args.K_list]
+        ndcg_list_list = [[] for _ in args.K_list]
         for test_idx in range(len(test_grids)):
             ncf_input = torch.cat((merged_cate_embedding[test_idx], grid_embedding[test_idx], city_bias), 1)
             score = self.NCF(ncf_input).squeeze()
             _, sorted_indices = torch.sort(score, descending=True)
 
-            hr_list.append(hit_ratio_at_K(0, sorted_indices[:args.K], args.K))
-            ndcg_list.append(ndcg_at_K(0, sorted_indices[:args.K], args.K))
-        return np.mean(hr_list), np.mean(ndcg_list)
+            # hr_list.append(hit_ratio_at_K(0, sorted_indices[:args.K], args.K))
+            # ndcg_list.append(ndcg_at_K(0, sorted_indices[:args.K], args.K))
+
+            for k_index, k_val in enumerate(args.K_list):
+                hr_list_list[k_index].append(hit_ratio_at_K(0, sorted_indices, k_val))
+                ndcg_list_list[k_index].append(ndcg_at_K(0, sorted_indices, k_val))
+
+        hr_list_list = list(map(lambda x: np.mean(x), hr_list_list))
+        ndcg_list_list = list(map(lambda x: np.mean(x), ndcg_list_list))
+
+        # return np.mean(hr_list), np.mean(ndcg_list)
+        return hr_list_list, ndcg_list_list
 
     def forward(self, mode, *inputs):
         if mode == "cal_KG_transR":

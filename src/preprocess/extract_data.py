@@ -26,7 +26,7 @@ class _CityInfoExtractHelper(object):
 
         # load data
         self.dianping_data = self._load_dianping_data()
-        # TODO load multi-type info
+        self.multi_type_data = self._load_multi_type_data()
 
         # extract category-grid info
         self.small_category_grid_relation = self._extract_category_gird_interaction_info()
@@ -84,6 +84,24 @@ class _CityInfoExtractHelper(object):
 
         return dianping_data
 
+    def _load_multi_type_data(self):
+        data_dir = os.path.join(args.raw_data_dir, args.city_list[self.city_id])
+        multi_type_data_path = os.path.join(data_dir, 'multi_type_dianping_data.csv')
+        data = pd.read_csv(multi_type_data_path, usecols=args.city_dianping_index_order[self.city_id])
+
+        # format data
+        data = data[data['status'] == 0].drop(columns='status')  # 筛出正常营业的店铺
+        data['review_count'].fillna(-1, inplace=True)  # 将 review_count 为空值用 - 1填充
+        data['review_count'] = data['review_count'].astype('int64')
+
+        # # remap category name into category ID
+        # data['big_category'] = data['big_category'].map(
+        #     lambda x: self.big_category_dict[x])
+        # data['small_category'] = data['small_category'].map(
+        #     lambda x: self.small_category_dict[x])
+
+        return data
+
     def _extract_category_gird_interaction_info(self):
         small_category_grid_relation = []  # small category  &  grid  relation
 
@@ -92,7 +110,7 @@ class _CityInfoExtractHelper(object):
 
         # handle single-type data
         for item in self.dianping_data.itertuples():
-            # filter test data
+            # filter data
             if item.small_category in intentionally_ignored_cate_id_list:
                 continue
 
@@ -109,7 +127,29 @@ class _CityInfoExtractHelper(object):
             small_category_grid_relation.append([item.small_category, grid_id])
 
         # handle multi-type data
-        # TODO 等苗子佳学姐处理好
+        for item in self.multi_type_data.itertuples():
+            # filter test data
+            small_cats = item.small_category.split('+')
+            small_cats = [self.small_category_dict[cat] for cat in small_cats]
+
+            if len(small_cats) < 2:
+                continue
+
+            if any([cat in intentionally_ignored_cate_id_list for cat in small_cats]):
+                continue
+
+            # get grid id
+            grid_id = -1
+            for idx in range(self.n_grid):
+                if self.grid_coordinate_scope[idx][1] <= item.latitude <= self.grid_coordinate_scope[idx][2] and \
+                        self.grid_coordinate_scope[idx][3] <= item.longitude <= self.grid_coordinate_scope[idx][4]:
+                    grid_id = idx
+                    break
+            if grid_id < 0:  # POI 所处位置不在该城市的选定区域中
+                continue
+
+            for cat in intentionally_ignored_cate_id_list:
+                small_category_grid_relation.append([cat, grid_id])
 
         return small_category_grid_relation
 
@@ -129,10 +169,9 @@ class _CityInfoExtractHelper(object):
     def _extract_test_data(self):
         test_pos_grids = []  # grid id in which there exists a true POI with target type
 
-        test_target_type_id_list = [self.small_category_dict[cat] for cat in args.test_target_type_list]
-
         if args.test_data_mode == 0:  # 0: 单类型数据中的指定类型作为 test data
             print("| | |--use test data mode 0: choose from single type data.")
+            test_target_type_id_list = [self.small_category_dict[cat] for cat in args.test_target_type_list]
             for item in self.dianping_data.itertuples():
                 # filter test data
                 if item.small_category not in test_target_type_id_list:
@@ -151,8 +190,21 @@ class _CityInfoExtractHelper(object):
                 test_pos_grids.append(grid_id)
         else:  # 1: 多类型数据中的指定店名部分 test data
             print("| | |--use test data mode 1: choose from multi-type data.")
-            # TODO 等苗子佳学姐的数据
-            pass
+            for item in self.multi_type_data:
+                if item.name not in args.test_file_target_shop_name:
+                    continue
+
+                # get grid id
+                grid_id = -1
+                for idx in range(self.n_grid):
+                    if self.grid_coordinate_scope[idx][1] <= item.latitude <= self.grid_coordinate_scope[idx][2] and \
+                            self.grid_coordinate_scope[idx][3] <= item.longitude <= self.grid_coordinate_scope[idx][4]:
+                        grid_id = idx
+                        break
+                if grid_id < 0:  # POI 所处位置不在该城市的选定区域中
+                    continue
+
+                test_pos_grids.append(grid_id)
 
         test_data = self._supplement_test_data(test_pos_grids)
 

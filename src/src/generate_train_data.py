@@ -8,13 +8,16 @@
 import os
 import dgl
 import random
+import pandas as pd
 
 from src.args import args
 
 
 class GenerateTrainDataHelper(object):
+    # TODO 每一个 epoch 应该重新生成负样例
     def __init__(self, city_id, city_graph, graph_entity_relation_to_ID, DEVICE):
         self.city_id = city_id
+
         # load graph
         # self.city_graph = load_graph(city_id)
         self.city_graph = city_graph
@@ -64,16 +67,8 @@ class GenerateTrainDataHelper(object):
         pos_grid_list.extend(pos_grid)
         neg_grid_list.extend(neg_grid)
 
-        # # shuffle index to avoid same category to be together
-        # index_for_shuffle = list(range(len(cate_list)))
-        # random.shuffle(index_for_shuffle)
-        # cate_list = cate_list[index_for_shuffle]
-        # pos_grid_list = pos_grid_list[index_for_shuffle]
-        # neg_grid_list = neg_grid_list[index_for_shuffle]
-
         # multi-category
-        data_dir = os.path.join(args.preprocessed_data_dir, args.city_list[self.city_id])
-        # TODO 等待苗子佳学姐的数据
+        # TODO 移到 extract data 里面完成？
         pass
 
         batch_data_for_NCF = [[cate_list[i: i + args.NCF_batch_size],
