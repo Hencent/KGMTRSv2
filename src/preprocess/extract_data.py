@@ -75,6 +75,7 @@ class _CityInfoExtractHelper(object):
         dianping_data = dianping_data[dianping_data['status'] == 0].drop(columns='status')  # 筛出正常营业的店铺
         dianping_data['review_count'].fillna(-1, inplace=True)  # 将 review_count 为空值用 - 1填充
         dianping_data['review_count'] = dianping_data['review_count'].astype('int64')
+        dianping_data['name'] = dianping_data['name'].astype('str')
 
         # remap category name into category ID
         dianping_data['big_category'] = dianping_data['big_category'].map(
@@ -93,6 +94,7 @@ class _CityInfoExtractHelper(object):
         data = data[data['status'] == 0].drop(columns='status')  # 筛出正常营业的店铺
         data['review_count'].fillna(-1, inplace=True)  # 将 review_count 为空值用 - 1填充
         data['review_count'] = data['review_count'].astype('int64')
+        data['name'] = data['name'].astype('str')
 
         # # remap category name into category ID
         # data['big_category'] = data['big_category'].map(
@@ -113,6 +115,9 @@ class _CityInfoExtractHelper(object):
             # filter data
             if item.small_category in intentionally_ignored_cate_id_list:
                 continue
+            if any([name in item.name for name in args.intentionally_ignored_shop_name]):
+                print("del", item)
+                continue
 
             # get grid id
             grid_id = -1
@@ -131,11 +136,13 @@ class _CityInfoExtractHelper(object):
             # filter test data
             small_cats = item.small_category.split('+')
             small_cats = [self.small_category_dict[cat] for cat in small_cats]
-
             if len(small_cats) < 2:
                 continue
-
             if any([cat in intentionally_ignored_cate_id_list for cat in small_cats]):
+                continue
+
+            if any([name in item.name for name in args.intentionally_ignored_shop_name]):
+                print("del", item)
                 continue
 
             # get grid id
@@ -190,7 +197,7 @@ class _CityInfoExtractHelper(object):
                 test_pos_grids.append(grid_id)
         else:  # 1: 多类型数据中的指定店名部分 test data
             print("| | |--use test data mode 1: choose from multi-type data.")
-            for item in self.multi_type_data:
+            for item in self.multi_type_data.itertuples():
                 if item.name not in args.test_file_target_shop_name:
                     continue
 
