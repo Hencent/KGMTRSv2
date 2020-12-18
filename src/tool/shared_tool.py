@@ -14,10 +14,8 @@ from src.args import args
 
 
 def load_category():
-    big_category_dir = os.path.join(args.category_dir, 'big_category.csv')
-    small_category_dir = os.path.join(args.category_dir, 'small_category.csv')
-    big_category = pd.read_csv(big_category_dir)
-    small_category = pd.read_csv(small_category_dir)
+    big_category = pd.read_csv(os.path.join(args.category_dir, 'big_category.csv'))
+    small_category = pd.read_csv(os.path.join(args.category_dir, 'small_category.csv'))
 
     big_category_dict = dict()
     small_category_dict = dict()
@@ -26,7 +24,22 @@ def load_category():
     for item in small_category.itertuples():
         small_category_dict[item.name] = item.ID
 
-    return big_category_dict, small_category_dict, len(big_category_dict), len(small_category_dict)
+    bcID2globalID = pd.read_csv(os.path.join(args.category_dir, 'big_cat_ID_to_global_ID.csv'))
+    scID2globalID = pd.read_csv(os.path.join(args.category_dir, 'small_cat_ID_to_global_ID.csv'))
+    big_cate_ID_to_global_ID_dict = dict()
+    small_cate_ID_to_global_ID_dict = dict()
+    for item in bcID2globalID.itertuples():
+        big_cate_ID_to_global_ID_dict[item.big_cate_id] = item.global_cate_id
+    for item in scID2globalID.itertuples():
+        small_cate_ID_to_global_ID_dict[item.small_cate_id] = item.global_cate_id
+
+    multi_level_cate = pd.read_csv(os.path.join(args.category_dir, 'cate_with_multi_level.csv')).values.tolist()
+    multi_level_cate = [item[0] for item in multi_level_cate]
+
+    n_category = max(bcID2globalID['global_cate_id'].max(), scID2globalID['global_cate_id'].max())
+
+    return big_category_dict, small_category_dict, big_cate_ID_to_global_ID_dict, \
+        small_cate_ID_to_global_ID_dict, multi_level_cate, n_category
 
 
 def ensure_dir_exist(dir_path):
@@ -35,8 +48,14 @@ def ensure_dir_exist(dir_path):
         os.makedirs(d)
 
 
+# def load_category_relation():
+#     data_dir = os.path.join(args.category_dir, "big_small_category_relation.csv")
+#     relation_data = pd.read_csv(data_dir)
+#     return relation_data
+
+
 def load_category_relation():
-    data_dir = os.path.join(args.category_dir, "big_small_category_relation.csv")
+    data_dir = os.path.join(args.category_dir, "cate_relation.csv")
     relation_data = pd.read_csv(data_dir)
     return relation_data
 

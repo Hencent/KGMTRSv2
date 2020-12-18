@@ -56,8 +56,8 @@ class GenerateTrainDataHelper(object):
 
         # single category
         neg_sampler = dgl.dataloading.negative_sampler.Uniform(1)
-        category, pos_grid, eid = self.city_graph.edges(etype="small-category_grid", form='all')
-        neg_grid = list(neg_sampler(self.city_graph, {"small-category_grid": eid}).values())[0][1]
+        category, pos_grid, eid = self.city_graph.edges(etype="category_grid", form='all')
+        neg_grid = list(neg_sampler(self.city_graph, {"category_grid": eid}).values())[0][1]
 
         category = category.tolist()
         pos_grid = pos_grid.tolist()

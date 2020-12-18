@@ -22,12 +22,12 @@ class _SingleCityGraphBuilder(object):
         print("| | |--       load necessary information in order to build graph.")
         self.category_grid_relation, self.grid_relation = self._load_graph_relation()
         self.category_relation = load_category_relation()
-        _, _, n_big_category, n_small_category = load_category()
+        n_category = self.category_relation.max().max() + 1
         n_grid = self._get_n_grid()
 
         # build graph
         print("| | |--       build graph.")
-        self.graph = self._build_graph(n_big_category, n_small_category, n_grid)
+        self.graph = self._build_graph(n_category, n_grid)
 
         # save handled city data
         print("| | |--       save city graph data.")
@@ -51,27 +51,24 @@ class _SingleCityGraphBuilder(object):
 
         return category_grid_relation, grid_relation
 
-    def _build_graph(self, n_big_category, n_small_category, n_grid):
+    def _build_graph(self, n_category, n_grid):
         graph_data = {
-            ('small-category', 'small-category_grid', 'grid'): (self.category_grid_relation["small category ID"],
-                                                                self.category_grid_relation["grid ID"]),
-            ('grid', 'grid_small-category', 'small-category'): (self.category_grid_relation["grid ID"],
-                                                                self.category_grid_relation["small category ID"]),
+            ('category', 'category_grid', 'grid'): (self.category_grid_relation["category ID"],
+                                                    self.category_grid_relation["grid ID"]),
+            ('grid', 'grid_category', 'category'): (self.category_grid_relation["grid ID"],
+                                                    self.category_grid_relation["category ID"]),
 
             ('grid', 'grid_grid', 'grid'): (self.grid_relation["grid source ID"],
                                             self.grid_relation["grid target ID"]),
         }
-        num_nodes_dict = {'small-category': n_small_category, 'grid': n_grid}
+        num_nodes_dict = {'category': n_category, 'grid': n_grid}
 
         if args.use_category_ontology_diagram:
             graph_data.update({
-                ('small-category', 'small-category_big-category', 'big-category'): (
-                    self.category_relation["small_cate"], self.category_relation["big_cate"]),
-                ('big-category', 'big-category_small-category', 'small-category'): (
-                    self.category_relation["big_cate"], self.category_relation["small_cate"]),
-            })
-            num_nodes_dict.update({
-                'big-category': n_big_category,
+                ('category', 'father-cate_child-cate', 'category'): (
+                    self.category_relation["father_cate"], self.category_relation["child_cate"]),
+                ('category', 'child-cate_father-cate', 'category'): (
+                    self.category_relation["child_cate"], self.category_relation["father_cate"]),
             })
 
         g = dgl.heterograph(graph_data, num_nodes_dict=num_nodes_dict)

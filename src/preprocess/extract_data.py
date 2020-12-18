@@ -16,15 +16,19 @@ from src.args import args
 
 
 class _CityInfoExtractHelper(object):
-    def __init__(self, city_id, big_category_dict, small_category_dict):
+    def __init__(self, city_id, big_category_dict, small_category_dict, bcID_to_globalID_dict,
+                 scID_to_globalID_dict, multi_level_cate):
         self.city_id = city_id
         self.big_category_dict, self.small_category_dict = big_category_dict, small_category_dict
+        self.bcID_to_globalID_dict, self.scID_to_globalID_dict = bcID_to_globalID_dict, scID_to_globalID_dict
+        self.multi_level_cate = multi_level_cate
 
         # extract grid info
         self.n_longitude, self.n_latitude, self.n_grid, self.grid_coordinate_scope, \
             self.grid_relations = self._extract_grid_info()
 
         # load data
+        self.cate_price_divider = dict()
         self.dianping_data = self._load_dianping_data()
         self.multi_type_data = self._load_multi_type_data()
 
@@ -73,15 +77,43 @@ class _CityInfoExtractHelper(object):
 
         # format data
         dianping_data = dianping_data[dianping_data['status'] == 0].drop(columns='status')  # 筛出正常营业的店铺
-        dianping_data['review_count'].fillna(-1, inplace=True)  # 将 review_count 为空值用 - 1填充
+        dianping_data['review_count'].fillna(-1, inplace=True)  # 将 review_count 为空值用 -1 填充
         dianping_data['review_count'] = dianping_data['review_count'].astype('int64')
         dianping_data['name'] = dianping_data['name'].astype('str')
+        dianping_data['avg_price'] = dianping_data['avg_price'].map(lambda x: ''.join(filter(str.isdigit, str(x))))
+        dianping_data['avg_price'] = dianping_data['avg_price'].map(lambda x: x if x != "" else "0")
+        dianping_data['avg_price'] = dianping_data['avg_price'].astype(int)
 
-        # remap category name into category ID
+        # remap category name into big/small category ID
         dianping_data['big_category'] = dianping_data['big_category'].map(
-            lambda x: self.big_category_dict[x])
+            lambda x: self.bcID_to_globalID_dict[self.big_category_dict[x]])
         dianping_data['small_category'] = dianping_data['small_category'].map(
-            lambda x: self.small_category_dict[x])
+            lambda x: self.scID_to_globalID_dict[self.small_category_dict[x]])
+
+        # generate multi-level category divider
+        multi_level_data = dianping_data[dianping_data['avg_price'] > 0]
+        multi_level_data = multi_level_data[[sc in self.multi_level_cate for sc in multi_level_data['small_category']]]
+        multi_level_groups = multi_level_data.groupby('small_category')
+        for cate_name, cate_data in multi_level_groups:
+            cate_data = cate_data.sort_values(by=['avg_price'])
+            cate_data_len = len(cate_data)
+            first_split_id = cate_data_len * 4 // 5
+            second_split_id = cate_data_len // 5
+            self.cate_price_divider[cate_name] = [cate_data.iloc[first_split_id].avg_price,
+                                                  cate_data.iloc[second_split_id].avg_price]
+
+        # remap category with multi-level
+        def multi_level_cate_helper(item):
+            if item.avg_price > 0 and item.small_category in self.multi_level_cate:
+                if item.avg_price >= self.cate_price_divider[item.small_category][0]:
+                    return item.small_category + 3
+                elif item.avg_price <= self.cate_price_divider[item.small_category][1]:
+                    return item.small_category + 1
+                else:
+                    return item.small_category + 2
+            else:
+                return item.small_category
+        dianping_data['small_category'] = dianping_data.apply(multi_level_cate_helper, axis=1)
 
         return dianping_data
 
@@ -95,19 +127,16 @@ class _CityInfoExtractHelper(object):
         data['review_count'].fillna(-1, inplace=True)  # 将 review_count 为空值用 - 1填充
         data['review_count'] = data['review_count'].astype('int64')
         data['name'] = data['name'].astype('str')
-
-        # # remap category name into category ID
-        # data['big_category'] = data['big_category'].map(
-        #     lambda x: self.big_category_dict[x])
-        # data['small_category'] = data['small_category'].map(
-        #     lambda x: self.small_category_dict[x])
+        data['avg_price'] = data['avg_price'].map(lambda x: ''.join(filter(str.isdigit, str(x))))
+        data['avg_price'] = data['avg_price'].map(lambda x: x if x != "" else "0")
+        data['avg_price'] = data['avg_price'].astype(int)
 
         return data
 
     def _extract_category_gird_interaction_info(self):
         small_category_grid_relation = []  # small category  &  grid  relation
 
-        intentionally_ignored_cate_id_list = [self.small_category_dict[cat]
+        intentionally_ignored_cate_id_list = [self.scID_to_globalID_dict[self.small_category_dict[cat]]
                                               for cat in args.intentionally_ignored_cate_list]
 
         # handle single-type data
@@ -135,15 +164,29 @@ class _CityInfoExtractHelper(object):
         for item in self.multi_type_data.itertuples():
             # filter test data
             small_cats = item.small_category.split('+')
-            small_cats = [self.small_category_dict[cat] for cat in small_cats]
+            small_cats = [self.scID_to_globalID_dict[self.small_category_dict[cat]] for cat in small_cats]
+
             if len(small_cats) < 2:
                 continue
             if any([cat in intentionally_ignored_cate_id_list for cat in small_cats]):
                 continue
-
             if any([name in item.name for name in args.intentionally_ignored_shop_name]):
                 print("del", item)
                 continue
+
+            val = item.avg_price
+
+            def sc2multi_cate_helper(cate):
+                if val > 0 and cate in self.cate_price_divider:
+                    if val >= self.cate_price_divider[cate][0]:
+                        return cate + 3
+                    elif val <= self.cate_price_divider[cate][1]:
+                        return cate + 1
+                    else:
+                        return cate + 2
+                else:
+                    return cate
+            small_cats = list(map(sc2multi_cate_helper, small_cats))
 
             # get grid id
             grid_id = -1
@@ -155,7 +198,7 @@ class _CityInfoExtractHelper(object):
             if grid_id < 0:  # POI 所处位置不在该城市的选定区域中
                 continue
 
-            for cat in intentionally_ignored_cate_id_list:
+            for cat in small_cats:
                 small_category_grid_relation.append([cat, grid_id])
 
         return small_category_grid_relation
@@ -178,7 +221,15 @@ class _CityInfoExtractHelper(object):
 
         if args.test_data_mode == 0:  # 0: 单类型数据中的指定类型作为 test data
             print("| | |--use test data mode 0: choose from single type data.")
-            test_target_type_id_list = [self.small_category_dict[cat] for cat in args.test_target_type_list]
+            test_target_type_id_list = [self.scID_to_globalID_dict[self.small_category_dict[cat]]
+                                        for cat in args.test_target_type_list]
+            test_target_type_id_list = [[item] if item not in self.multi_level_cate else [item, item+1, item+2, item+3]
+                                        for item in test_target_type_id_list]
+            tmp_type = []
+            for item in test_target_type_id_list:
+                tmp_type.extend(item)
+            test_target_type_id_list = tmp_type
+
             for item in self.dianping_data.itertuples():
                 # filter test data
                 if item.small_category not in test_target_type_id_list:
@@ -224,7 +275,7 @@ class _CityInfoExtractHelper(object):
         # category & grid relation
         with open(os.path.join(data_dir, 'category_grid_relation.csv'), 'w') as f:
             f_csv = csv.writer(f)
-            f_csv.writerow(["small category ID", "grid ID"])
+            f_csv.writerow(["category ID", "grid ID"])
             f_csv.writerows(self.small_category_grid_relation)
 
         # geographical info
@@ -253,10 +304,12 @@ class _CityInfoExtractHelper(object):
 
 def data_extract_and_generate_test_data():
     # load category
-    big_category_dict, small_category_dict, _, _ = load_category()
+    big_category_dict, small_category_dict, bcID_to_globalID_dict, scID_to_globalID_dict, multi_level_cate, n_category\
+        = load_category()
 
     # preprocess every city
     for city_id, city_name in enumerate(args.city_list):
         print("| |--  loading and preprocessing {} data.".format(city_name))
-        _CityInfoExtractHelper(city_id, big_category_dict, small_category_dict)
+        _CityInfoExtractHelper(city_id, big_category_dict, small_category_dict,
+                               bcID_to_globalID_dict, scID_to_globalID_dict, multi_level_cate)
 

@@ -16,18 +16,14 @@ from src.args import args
 
 class KnowledgeGraph(nn.Module):
 
-    def __init__(self, n_big_category, n_small_category, n_city_grid, n_relation):
+    def __init__(self, n_category, n_city_grid, n_relation):
         super().__init__()
-        self.small_category_embedding = nn.Parameter(torch.randn(n_small_category, args.embedding_size),
-                                                     requires_grad=True)
-        self.big_category_embedding = nn.Parameter(torch.randn(n_big_category, args.embedding_size),
-                                                   requires_grad=True)
+        self.category_embedding = nn.Parameter(torch.randn(n_category, args.embedding_size), requires_grad=True)
         self.graph_relation_embed = nn.Parameter(torch.randn(n_relation, args.relation_dim), requires_grad=True)
         self.graph_W_R = nn.Parameter(torch.rand([n_relation, args.embedding_size, args.relation_dim]),
                                       requires_grad=True)
 
-        nn.init.xavier_uniform_(self.small_category_embedding, gain=nn.init.calculate_gain('leaky_relu'))
-        nn.init.xavier_uniform_(self.big_category_embedding, gain=nn.init.calculate_gain('leaky_relu'))
+        nn.init.xavier_uniform_(self.category_embedding, gain=nn.init.calculate_gain('leaky_relu'))
         nn.init.xavier_uniform_(self.graph_relation_embed, gain=nn.init.calculate_gain('leaky_relu'))
         nn.init.xavier_uniform_(self.graph_W_R, gain=nn.init.calculate_gain('leaky_relu'))
 
@@ -43,26 +39,26 @@ class KnowledgeGraph(nn.Module):
     def _get_graph_embedding_for_kg_transR(self, city_id, h, t_pos, t_neg, relation):
         h_embed = t_pos_embed = t_neg_embed = None
 
-        if relation == 0:  # "small-category_grid"
-            h_embed = self.small_category_embedding[h]
+        if relation == 0:  # "category_grid"
+            h_embed = self.category_embedding[h]
             t_pos_embed = self.city_grid_embedding[city_id][t_pos]
             t_neg_embed = self.city_grid_embedding[city_id][t_neg]
-        elif relation == 1:  # "grid_small-category"
+        elif relation == 1:  # "grid_category"
             h_embed = self.city_grid_embedding[city_id][h]
-            t_pos_embed = self.small_category_embedding[t_pos]
-            t_neg_embed = self.small_category_embedding[t_neg]
+            t_pos_embed = self.category_embedding[t_pos]
+            t_neg_embed = self.category_embedding[t_neg]
         elif relation == 2:  # "grid_grid":
             h_embed = self.city_grid_embedding[city_id][h]
             t_pos_embed = self.city_grid_embedding[city_id][t_pos]
             t_neg_embed = self.city_grid_embedding[city_id][t_neg]
-        elif relation == 3:  # "small-category_big-big-category":
-            h_embed = self.small_category_embedding[h]
-            t_pos_embed = self.big_category_embedding[t_pos]
-            t_neg_embed = self.big_category_embedding[t_neg]
-        elif relation == 4:  # "big-category_small-category":
-            h_embed = self.big_category_embedding[h]
-            t_pos_embed = self.small_category_embedding[t_pos]
-            t_neg_embed = self.small_category_embedding[t_neg]
+        elif relation == 3:  # "father-category_child-category":
+            h_embed = self.category_embedding[h]
+            t_pos_embed = self.category_embedding[t_pos]
+            t_neg_embed = self.category_embedding[t_neg]
+        elif relation == 4:  # "child-category_father-category":
+            h_embed = self.category_embedding[h]
+            t_pos_embed = self.category_embedding[t_pos]
+            t_neg_embed = self.category_embedding[t_neg]
 
         return h_embed, t_pos_embed, t_neg_embed
 
@@ -94,10 +90,8 @@ class KnowledgeGraph(nn.Module):
     def get_node_embedding(self, node_id_list, city_id, node_type):
         if node_type == "grid":
             return self.city_grid_embedding[city_id][node_id_list]
-        elif node_type == "big-category":
-            return self.big_category_embedding[node_id_list]
-        elif node_type == "small-category":
-            return self.small_category_embedding[node_id_list]
+        elif node_type == "category":
+            return self.category_embedding[node_id_list]
         else:
             return None
 
@@ -122,30 +116,16 @@ class Aggregator(nn.Module):
         grid_out = self.message_dropout(grid_out)
         g.nodes['grid'].data['v'] = grid_out
 
-        small_category_1 = self.activation(self.w1(g.nodes['small-category'].data['v'] +
-                                             g.nodes['small-category'].data['N_h']))
-        small_category_2 = self.activation(self.w1(g.nodes['small-category'].data['v'] *
-                                             g.nodes['small-category'].data['N_h']))
-        small_category_out = small_category_1 + small_category_2
-        small_category_out = self.message_dropout(small_category_out)
-        g.nodes['small-category'].data['v'] = small_category_out
-
-        if args.use_category_ontology_diagram:
-            big_cate_out1 = self.activation(self.w1(g.nodes['big-category'].data['v'] +
-                                                    g.nodes['big-category'].data['N_h']))
-            big_cate_out2 = self.activation(self.w1(g.nodes['big-category'].data['v'] +
-                                                    g.nodes['big-category'].data['N_h']))
-            big_cate_out = big_cate_out1 + big_cate_out2
-            big_cate_out = self.message_dropout(big_cate_out)
-            g.nodes['big-category'].data['v'] = big_cate_out
+        category_1 = self.activation(self.w1(g.nodes['category'].data['v'] + g.nodes['category'].data['N_h']))
+        category_2 = self.activation(self.w1(g.nodes['category'].data['v'] * g.nodes['category'].data['N_h']))
+        category_out = category_1 + category_2
+        category_out = self.message_dropout(category_out)
+        g.nodes['category'].data['v'] = category_out
 
         if stage == 0:
-            # return [g.nodes['small-category'].data['v'][cats] for cats in category_id_list], \
-            #     grid_out[pos_grid_id], grid_out[neg_grid_id]
-            return [small_category_out[cats] for cats in category_id_list], \
-                grid_out[pos_grid_id], grid_out[neg_grid_id]
+            return [category_out[cats] for cats in category_id_list], grid_out[pos_grid_id], grid_out[neg_grid_id]
         else:
-            return small_category_out[category_id_list], grid_out[pos_grid_id]
+            return category_out[category_id_list], grid_out[pos_grid_id]
 
 
 class NCF(nn.Module):
@@ -165,13 +145,13 @@ class NCF(nn.Module):
 
 
 class KGMTRS(nn.Module):
-    def __init__(self, n_big_category, n_small_category, n_city_grid, n_kg_relation,
+    def __init__(self, n_category, n_city_grid, n_kg_relation,
                  graph_entity_relation_to_ID):
         super().__init__()
         self.graph_entity_relation_to_ID = graph_entity_relation_to_ID
 
         # knowledge graph
-        self.knowledge_graph = KnowledgeGraph(n_big_category, n_small_category, n_city_grid, n_kg_relation)
+        self.knowledge_graph = KnowledgeGraph(n_category, n_city_grid, n_kg_relation)
 
         # graph aggregation layers
         self.aggregation_layers = nn.ModuleList()
@@ -224,12 +204,10 @@ class KGMTRS(nn.Module):
     def _propagation_for_NCF(self, city_id, g, cate_list, pos_grid_list, neg_grid_list):
         with g.local_scope():
 
-            g.nodes['small-category'].data['v'] = self.knowledge_graph.small_category_embedding
+            g.nodes['category'].data['v'] = self.knowledge_graph.category_embedding
             g.nodes['grid'].data['v'] = self.knowledge_graph.city_grid_embedding[city_id]
-            if args.use_category_ontology_diagram:
-                g.nodes['big-category'].data['v'] = self.knowledge_graph.big_category_embedding
 
-            cate_list_embedding = [[g.nodes['small-category'].data['v'][cats]] for cats in cate_list]
+            cate_list_embedding = [[g.nodes['category'].data['v'][cats]] for cats in cate_list]
             pos_grid_embedding = [g.nodes['grid'].data['v'][pos_grid_list]]
             neg_grid_embedding = [g.nodes['grid'].data['v'][neg_grid_list]]
 
@@ -292,15 +270,13 @@ class KGMTRS(nn.Module):
 
     def _propagation_for_test(self, g, cats, grids):
         with g.local_scope():
-            g.nodes['small-category'].data['v'] = self.knowledge_graph.small_category_embedding
+            g.nodes['category'].data['v'] = self.knowledge_graph.category_embedding
             g.nodes['grid'].data['v'] = self.knowledge_graph.city_grid_embedding[args.target_city_id]
-            if args.use_category_ontology_diagram:
-                g.nodes['big-category'].data['v'] = self.knowledge_graph.big_category_embedding
 
             test_len, single_test_len = grids.shape
             grids = grids.reshape(1, -1).squeeze()
 
-            cate_list_embedding = [g.nodes['small-category'].data['v'][cats]]
+            cate_list_embedding = [g.nodes['category'].data['v'][cats]]
             grids_embedding = [g.nodes['grid'].data['v'][grids]]
 
             for layer in self.aggregation_layers:
@@ -318,17 +294,12 @@ class KGMTRS(nn.Module):
         merged_cate_embedding = self._merge_cate_for_test(cate_embedding, grid_embedding)
         city_bias = self.knowledge_graph.city_bias[args.target_city_id].repeat(len(test_grids[0]), 1)
 
-        # hr_list = []
-        # ndcg_list = []
         hr_list_list = [[] for _ in args.K_list]
         ndcg_list_list = [[] for _ in args.K_list]
         for test_idx in range(len(test_grids)):
             ncf_input = torch.cat((merged_cate_embedding[test_idx], grid_embedding[test_idx], city_bias), 1)
             score = self.NCF(ncf_input).squeeze()
             _, sorted_indices = torch.sort(score, descending=True)
-
-            # hr_list.append(hit_ratio_at_K(0, sorted_indices[:args.K], args.K))
-            # ndcg_list.append(ndcg_at_K(0, sorted_indices[:args.K], args.K))
 
             for k_index, k_val in enumerate(args.K_list):
                 hr_list_list[k_index].append(hit_ratio_at_K(0, sorted_indices, k_val))

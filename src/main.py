@@ -41,8 +41,7 @@ if __name__ == '__main__':
 
     # model and optimizer
     logging.info("|--           build model and optimizer.")
-    model = KGMTRS(data.n_big_category, data.n_small_category,
-                   data.n_city_grid, data.n_kg_relation, data.graph_entity_relation_to_ID)
+    model = KGMTRS(data.n_category,data.n_city_grid, data.n_kg_relation, data.graph_entity_relation_to_ID)
     if CUDA_AVAILABLE:
         model = model.to(DEVICE)
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
@@ -51,8 +50,6 @@ if __name__ == '__main__':
     logging.info("|--           begin training model.")
     kg_loss_list = []
     ncf_loss_list = []
-    # hr_list = []
-    # ndcg_list = []
     hr_list_list = [[] for k in args.K_list]
     ndcg_list_list = [[] for k in args.K_list]
 
@@ -133,11 +130,6 @@ if __name__ == '__main__':
         model.eval()
         with torch.no_grad():
             test_grids, target_cate_ids = data.get_test_data()
-            # hr, ndcg = model("test", data.city_graphs[args.target_city_id], target_cate_ids, test_grids)
-            # hr_list.append(hr)
-            # ndcg_list.append(ndcg)
-            # logging.info('|--            Epoch {:03d} | Test : | HR@{} {:.4f} | NDCG@{} {:.4f}'.
-            #              format(epoch, args.K, hr, args.K, ndcg))
 
             hr_list_val, ndcg_list_val = \
                 model("test", data.city_graphs[args.target_city_id], target_cate_ids, test_grids)
@@ -168,18 +160,6 @@ if __name__ == '__main__':
     plt.plot(range(len(ncf_loss_list)), ncf_loss_list)
     plt.savefig('loss.png')
     plt.show()
-
-    # plt.figure(2)
-    # plt.subplot(1, 2, 1)
-    # plt.xlabel("epoch")
-    # plt.ylabel("HR@{}".format(args.K))
-    # plt.plot(range(len(hr_list)), hr_list)
-    # plt.subplot(1, 2, 2)
-    # plt.xlabel("epoch")
-    # plt.ylabel("NDCG@{}".format(args.K))
-    # plt.plot(range(len(ndcg_list)), ndcg_list)
-    # plt.savefig('metrics.png')
-    # plt.show()
 
     for k_idx, k_val in enumerate(args.K_list):
         plt.figure()

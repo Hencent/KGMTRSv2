@@ -19,15 +19,16 @@ class DataLoader(object):
     def __init__(self, DEVICE):
         self.DEVICE = DEVICE
         # base info
-        graph_entity_relation_list = ["small-category_grid", "grid_small-category", "grid_grid"]
+        graph_entity_relation_list = ["category_grid", "grid_category", "grid_grid"]
         if args.use_category_ontology_diagram:
-            graph_entity_relation_list.extend(["small-category_big-category", "big-category_small-category"])
+            graph_entity_relation_list.extend(["father-cate_child-cate", "child-cate_father-cate"])
         self.graph_entity_relation_to_ID = dict({v: torch.tensor(k, device=DEVICE)
                                                  for k, v in enumerate(graph_entity_relation_list)})
 
         self.n_city_grid = [get_n_city_grid(city_id) for city_id in range(len(args.city_list))]
         self.n_kg_relation = len(graph_entity_relation_list)
-        self.big_category_dict, self.small_category_dict, self.n_big_category, self.n_small_category = load_category()
+        self.big_category_dict, self.small_category_dict, self.big_cate_ID_to_global_ID_dict, \
+            self.small_cate_ID_to_global_ID_dict, self.multi_level_cate, self.n_category = load_category()
 
         # load data
         self.test_grids, self.target_type_ids = self._generate_test_data()
