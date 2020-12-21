@@ -9,7 +9,7 @@ import csv
 import os
 import pandas as pd
 import dgl
-from src.tool.shared_tool import load_category_relation, load_category
+from src.tool.shared_tool import load_category_relation, load_category, get_n_city_grid
 
 from src.args import args
 
@@ -22,8 +22,8 @@ class _SingleCityGraphBuilder(object):
         print("| | |--       load necessary information in order to build graph.")
         self.category_grid_relation, self.grid_relation = self._load_graph_relation()
         self.category_relation = load_category_relation()
-        n_category = self.category_relation.max().max() + 1
-        n_grid = self._get_n_grid()
+        _, _, _, _, _, n_category = load_category()
+        n_grid = get_n_city_grid(self.city_id)
 
         # build graph
         print("| | |--       build graph.")
@@ -32,16 +32,6 @@ class _SingleCityGraphBuilder(object):
         # save handled city data
         print("| | |--       save city graph data.")
         self._save_graph()
-
-    def _get_n_grid(self):
-        data_dir = os.path.join(args.preprocessed_data_dir, args.city_list[self.city_id])
-        with open(os.path.join(data_dir, "base_info.csv"), 'r') as f:
-            next(f)
-            next(f)
-            reader = csv.reader(f, delimiter=',')
-            n_grid = [int(row[1]) for row in reader][0]
-
-        return n_grid
 
     def _load_graph_relation(self):
         data_dir = os.path.join(args.preprocessed_data_dir, args.city_list[self.city_id])

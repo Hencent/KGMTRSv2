@@ -113,7 +113,7 @@ class _CityInfoExtractHelper(object):
                     return item.small_category + 2
             else:
                 return item.small_category
-        dianping_data['small_category'] = dianping_data.apply(multi_level_cate_helper, axis=1)
+        dianping_data['global_category'] = dianping_data.apply(multi_level_cate_helper, axis=1)
 
         return dianping_data
 
@@ -131,10 +131,12 @@ class _CityInfoExtractHelper(object):
         data['avg_price'] = data['avg_price'].map(lambda x: x if x != "" else "0")
         data['avg_price'] = data['avg_price'].astype(int)
 
+        # category 的 remap 不在这里做。
+
         return data
 
     def _extract_category_gird_interaction_info(self):
-        small_category_grid_relation = []  # small category  &  grid  relation
+        category_grid_relation = []  # small category  &  grid  relation
 
         intentionally_ignored_cate_id_list = [self.scID_to_globalID_dict[self.small_category_dict[cat]]
                                               for cat in args.intentionally_ignored_cate_list]
@@ -158,14 +160,13 @@ class _CityInfoExtractHelper(object):
             if grid_id < 0:  # POI 所处位置不在该城市的选定区域中
                 continue
 
-            small_category_grid_relation.append([item.small_category, grid_id])
+            category_grid_relation.append([item.global_category, grid_id])
 
         # handle multi-type data
         for item in self.multi_type_data.itertuples():
             # filter test data
             small_cats = item.small_category.split('+')
             small_cats = [self.scID_to_globalID_dict[self.small_category_dict[cat]] for cat in small_cats]
-
             if len(small_cats) < 2:
                 continue
             if any([cat in intentionally_ignored_cate_id_list for cat in small_cats]):
@@ -199,9 +200,9 @@ class _CityInfoExtractHelper(object):
                 continue
 
             for cat in small_cats:
-                small_category_grid_relation.append([cat, grid_id])
+                category_grid_relation.append([cat, grid_id])
 
-        return small_category_grid_relation
+        return category_grid_relation
 
     def _supplement_test_data(self, pos_grids):
         """
@@ -223,11 +224,12 @@ class _CityInfoExtractHelper(object):
             print("| | |--use test data mode 0: choose from single type data.")
             test_target_type_id_list = [self.scID_to_globalID_dict[self.small_category_dict[cat]]
                                         for cat in args.test_target_type_list]
-            test_target_type_id_list = [[item] if item not in self.multi_level_cate else [item, item+1, item+2, item+3]
-                                        for item in test_target_type_id_list]
             tmp_type = []
-            for item in test_target_type_id_list:
-                tmp_type.extend(item)
+            for item_idx, item in enumerate(test_target_type_id_list):
+                if item not in self.multi_level_cate:
+                    tmp_type.append(item)
+                else:
+                    tmp_type.append(item + args.level_plus[item_idx])
             test_target_type_id_list = tmp_type
 
             for item in self.dianping_data.itertuples():

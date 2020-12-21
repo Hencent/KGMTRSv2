@@ -41,7 +41,7 @@ if __name__ == '__main__':
 
     # model and optimizer
     logging.info("|--           build model and optimizer.")
-    model = KGMTRS(data.n_category,data.n_city_grid, data.n_kg_relation, data.graph_entity_relation_to_ID)
+    model = KGMTRS(data.n_category, data.n_city_grid, data.n_kg_relation, data.graph_entity_relation_to_ID)
     if CUDA_AVAILABLE:
         model = model.to(DEVICE)
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)

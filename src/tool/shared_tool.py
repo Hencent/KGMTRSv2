@@ -36,7 +36,10 @@ def load_category():
     multi_level_cate = pd.read_csv(os.path.join(args.category_dir, 'cate_with_multi_level.csv')).values.tolist()
     multi_level_cate = [item[0] for item in multi_level_cate]
 
-    n_category = max(bcID2globalID['global_cate_id'].max(), scID2globalID['global_cate_id'].max())
+    # 可能需要更合理的方式去获取一共有多少 category
+    relation_data = load_category_relation()
+    n_category = max(bcID2globalID['global_cate_id'].max(), scID2globalID['global_cate_id'].max(),
+                     relation_data.max().max()+1)
 
     return big_category_dict, small_category_dict, big_cate_ID_to_global_ID_dict, \
         small_cate_ID_to_global_ID_dict, multi_level_cate, n_category

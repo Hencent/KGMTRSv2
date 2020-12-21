@@ -19,7 +19,6 @@ class GenerateTrainDataHelper(object):
         self.city_id = city_id
 
         # load graph
-        # self.city_graph = load_graph(city_id)
         self.city_graph = city_graph
 
         # generate train data for KGE

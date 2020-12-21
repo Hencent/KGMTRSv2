@@ -40,7 +40,7 @@ class Args(object):
 
         self.lr = 0.001
         self.weight_decay = 0.01
-        self.n_epoch = 100
+        self.n_epoch = 50
         self.use_category_ontology_diagram = True
 
         # test setting

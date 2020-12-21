@@ -90,7 +90,7 @@ class KnowledgeGraph(nn.Module):
     def get_node_embedding(self, node_id_list, city_id, node_type):
         if node_type == "grid":
             return self.city_grid_embedding[city_id][node_id_list]
-        elif node_type == "category":
+        elif node_type == "category" or node_type == "father-cate" or node_type == "child-cate":
             return self.category_embedding[node_id_list]
         else:
             return None
