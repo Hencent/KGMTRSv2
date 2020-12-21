@@ -12,7 +12,7 @@ from src.args import args
 
 if __name__ == "__main__":
     print("|--    begin extract data and generate test data.")
-    # data_extract_and_generate_test_data()
+    data_extract_and_generate_test_data()
 
     print("|--    build city graph.")
     build_city_graph()

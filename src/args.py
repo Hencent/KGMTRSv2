@@ -30,13 +30,13 @@ class Args(object):
         self.target_city = "Hangzhou"
         self.target_city_id = self.city_list.index(self.target_city)
 
-        # self.intentionally_ignored_cate_list = ["火锅", "四川火锅", "重庆火锅"]
-        # self.intentionally_ignored_shop_name = []
-        # self.small_cate_for_fitting_list = ["川菜家常菜", "串串香"]
-        self.intentionally_ignored_cate_list = []
-        self.intentionally_ignored_shop_name = ["盒马鲜生"]
-        self.small_cate_for_fitting_list = ["生鲜", "超市/便利店"]
-        self.level_plus = [1, 2]
+        self.intentionally_ignored_cate_list = ["火锅", "四川火锅", "重庆火锅"]
+        self.intentionally_ignored_shop_name = []
+        self.small_cate_for_fitting_list = ["川菜家常菜", "串串香"]
+        # self.intentionally_ignored_cate_list = []
+        # self.intentionally_ignored_shop_name = ["盒马鲜生"]
+        # self.small_cate_for_fitting_list = ["生鲜", "超市/便利店"]
+        self.level_plus = [1, 1]
 
         self.lr = 0.001
         self.weight_decay = 0.01
@@ -45,15 +45,20 @@ class Args(object):
 
         # test setting
         """
-        0: 单类型数据中的指定类型作为 test data_supplement_neg_test_data
+        0: 单类型数据中的指定类型作为 test data
         1: 多类型数据中的指定店名部分 test data
+        2: 单类型数据中的指定店名部分 test data
         """
-        self.test_data_mode = 1
+        self.test_data_mode = 2
         self.n_neg_grid = 60
+
         # self.test_target_type_list = ["火锅", "四川火锅", "重庆火锅"]  # 指定类型
-        self.test_target_type_list = []  # 指定类型
-        self.test_file_target_shop_name = ["盒马鲜生"]  # 多类型数据中，哪些店名测试数据
-        # self.K = 15
+
+        # self.test_target_type_list = []  # 指定类型
+        # self.test_file_target_shop_name = ["盒马鲜生"]  # 多类型数据中，哪些店名测试数据
+
+        self.test_origin_target_shop_name = ["海底捞火锅"]  # 单类型数据中，哪些店名测试数据
+
         self.K_list = [6, 10, 15]
 
         # Graph and propagation layers setting
@@ -61,8 +66,8 @@ class Args(object):
         self.city_bias_size = 4
         self.relation_dim = 64
         self.conv_dim_list = [64, 16, 8]
-        # self.dropout_for_conv = [0.1, 0.1, 0.1]
-        self.dropout_for_conv = [0.5, 0.5, 0.5]
+        self.dropout_for_conv = [0.1, 0.1, 0.1]
+        # self.dropout_for_conv = [0.5, 0.5, 0.5]
         self.ncf_dim_list = [32, 16, 1]
         self.dropout_for_ncf = [0.5, 0.5, 0.5]
         self.kg_transR_batch_size = 64

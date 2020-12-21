@@ -221,7 +221,7 @@ class _CityInfoExtractHelper(object):
         test_pos_grids = []  # grid id in which there exists a true POI with target type
 
         if args.test_data_mode == 0:  # 0: 单类型数据中的指定类型作为 test data
-            print("| | |--use test data mode 0: choose from single type data.")
+            print("| | |--use test data mode 0: choose from single type category data.")
             test_target_type_id_list = [self.scID_to_globalID_dict[self.small_category_dict[cat]]
                                         for cat in args.test_target_type_list]
             tmp_type = []
@@ -248,7 +248,7 @@ class _CityInfoExtractHelper(object):
                     continue
 
                 test_pos_grids.append(grid_id)
-        else:  # 1: 多类型数据中的指定店名部分 test data
+        elif args.test_data_mode == 1:  # 1: 多类型数据中的指定店名部分 test data
             print("| | |--use test data mode 1: choose from multi-type data.")
             for item in self.multi_type_data.itertuples():
                 if item.name not in args.test_file_target_shop_name:
@@ -265,9 +265,25 @@ class _CityInfoExtractHelper(object):
                     continue
 
                 test_pos_grids.append(grid_id)
+        else:  # 2： 单类型数据中，哪些店名测试数据
+            print("| | |--use test data mode 2: choose from single-type shop data.")
+            for item in self.dianping_data.itertuples():
+                if item.name not in args.test_origin_target_shop_name:
+                    continue
+
+                # get grid id
+                grid_id = -1
+                for idx in range(self.n_grid):
+                    if self.grid_coordinate_scope[idx][1] <= item.latitude <= self.grid_coordinate_scope[idx][2] and \
+                            self.grid_coordinate_scope[idx][3] <= item.longitude <= self.grid_coordinate_scope[idx][4]:
+                        grid_id = idx
+                        break
+                if grid_id < 0:  # POI 所处位置不在该城市的选定区域中
+                    continue
+
+                test_pos_grids.append(grid_id)
 
         test_data = self._supplement_test_data(test_pos_grids)
-
         return test_data
 
     def _save_preprocessed_data(self):
