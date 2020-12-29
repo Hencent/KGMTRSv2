@@ -112,8 +112,11 @@ class _CityInfoExtractHelper(object):
                 else:
                     return item.small_category + 2
             else:
-                return item.small_category
-        dianping_data['global_category'] = dianping_data.apply(multi_level_cate_helper, axis=1)
+                return item.small_category + 4
+        if args.use_multi_level_category:
+            dianping_data['global_category'] = dianping_data.apply(multi_level_cate_helper, axis=1)
+        else:
+            dianping_data['global_category'] = dianping_data['small_category']
 
         return dianping_data
 
@@ -177,17 +180,19 @@ class _CityInfoExtractHelper(object):
 
             val = item.avg_price
 
-            def sc2multi_cate_helper(cate):
-                if val > 0 and cate in self.cate_price_divider:
-                    if val >= self.cate_price_divider[cate][0]:
-                        return cate + 3
-                    elif val <= self.cate_price_divider[cate][1]:
-                        return cate + 1
+            if args.use_multi_level_category:
+                def sc2multi_cate_helper(cate):
+                    if val > 0 and cate in self.cate_price_divider:
+                        if val >= self.cate_price_divider[cate][0]:
+                            return cate + 3
+                        elif val <= self.cate_price_divider[cate][1]:
+                            return cate + 1
+                        else:
+                            return cate + 2
                     else:
-                        return cate + 2
-                else:
-                    return cate
-            small_cats = list(map(sc2multi_cate_helper, small_cats))
+                        return cate + 4
+
+                small_cats = list(map(sc2multi_cate_helper, small_cats))
 
             # get grid id
             grid_id = -1

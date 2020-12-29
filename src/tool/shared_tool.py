@@ -81,3 +81,8 @@ def get_n_city_grid(city_id):
     _, _, n_grid = load_city_base_info(city_id)
     return n_grid
 
+
+if __name__ == '__main__':
+    g = load_graph(0)
+
+    print('test')

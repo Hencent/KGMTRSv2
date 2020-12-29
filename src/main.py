@@ -22,10 +22,6 @@ N_GPU = 0
 
 if __name__ == '__main__':
     # system init and CUDA
-    if args.use_category_ontology_diagram:
-        print("Using category ontology diagram")
-    else:
-        print("Not using category ontology diagram")
 
     system_init()
 
@@ -33,9 +29,20 @@ if __name__ == '__main__':
     if CUDA_AVAILABLE:
         torch.cuda.manual_seed_all(args.seed)
         N_GPU = torch.cuda.device_count()
-    DEVICE = torch.device("cuda:{}".format(0) if CUDA_AVAILABLE else "cpu")
+    DEVICE = torch.device("cuda:{}".format(1) if CUDA_AVAILABLE else "cpu")
     logging.info("|--           system init done.")
 
+    logging.info(args)
+    if args.use_category_ontology_diagram:
+        print("Using category ontology diagram")
+    else:
+        print("Not using category ontology diagram")
+    if args.use_multi_level_category:
+        print("Using multi-level category")
+    else:
+        print("Not using multi-level category")
+
+    # load data
     data = DataLoader(DEVICE)
     logging.info("|--           load data done.")
 

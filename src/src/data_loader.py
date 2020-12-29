@@ -70,8 +70,14 @@ class DataLoader(object):
         test_grids = torch.tensor(test_grids.values, device=self.DEVICE)
 
         # 用于拟合的类似类型 ID
-        target_type_ids = torch.tensor([self.small_cate_ID_to_global_ID_dict[self.small_category_dict[v]]
-                                        for v in args.small_cate_for_fitting_list], device=self.DEVICE)
+        if args.use_multi_level_category:
+            target_type_ids = torch.tensor([self.small_cate_ID_to_global_ID_dict[self.small_category_dict[v]]
+                                            + args.level_plus[idx]
+                                            for idx, v in enumerate(args.small_cate_for_fitting_list)],
+                                           device=self.DEVICE)
+        else:
+            target_type_ids = torch.tensor([self.small_cate_ID_to_global_ID_dict[self.small_category_dict[v]]
+                                            for v in args.small_cate_for_fitting_list], device=self.DEVICE)
 
         return test_grids, target_type_ids
 
